@@ -42,6 +42,13 @@
 #include "map_reduce.h"
 #include "stddefines.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+PMEMobjpool* pool;
+PMEMobjpool* pool_A;
+PMEMobjpool* pool_B;
+
 typedef struct {
     int row_num;
     int *matrix_A;
@@ -87,8 +94,8 @@ int matrixmult_splitter(void *data_in, int req_units, map_args_t *out)
 {
     /* Make a copy of the mm_data structure */
     mm_data_t * data = (mm_data_t *)data_in; 
-    mm_data_t * data_out = (mm_data_t *)malloc(sizeof(mm_data_t));
-    memcpy((char*)data_out,(char*)data,sizeof(mm_data_t));
+    mm_data_t * data_out = (mm_data_t *)mem_malloc(sizeof(mm_data_t));
+    mem_memcpy((char*)data_out,(char*)data,sizeof(mm_data_t));
 
     /* Check whether the various terms exist */
     assert(data_in);
@@ -110,7 +117,7 @@ int matrixmult_splitter(void *data_in, int req_units, map_args_t *out)
     if(data->row_num >= data->matrix_len)
     {
         fflush(stdout);
-        free(data_out);
+        mem_free(data_out);
         return 0;
     }
 
@@ -182,7 +189,7 @@ void matrixmult_map(map_args_t *args)
     /* dprintf("Finished Map task %d\n",data->row_num); */
 
     /* fflush(stdout); */
-    free(args->data);
+    mem_free(args->data);
 }
 
 int main(int argc, char *argv[]) {
@@ -221,15 +228,17 @@ int main(int argc, char *argv[]) {
     else
         CHECK_ERROR ( (row_block_len = atoi(argv[2])) < 0);
 
-    if(argv[3] != NULL)
-        create_files = 1;
-    else
-        create_files = 0;
+    // if(argv[3] != NULL)
+    //     create_files = 1;
+    // else
+    //     create_files = 0;
+    // always create files
+    create_files = 1;
 
     printf("MatrixMult: Side of the matrix is %d\n", matrix_len);
     printf("MatrixMult: Row Block Len is %d\n", row_block_len);
     printf("MatrixMult: Running...\n");
-
+    
     /* If the matrix files do not exist, create them */
     if(create_files)
     {
@@ -249,7 +258,7 @@ int main(int argc, char *argv[]) {
             }
             //dprintf("\n");
         }
-        //dprintf("\n");
+        //dprintf("\n");main
 
         for(i=0;i<matrix_len;i++)
         {
@@ -270,35 +279,52 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR((fd_A = open(fname_A,O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd_A, &finfo_A) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata_A= mmap(0, file_size + 1,
-        PROT_READ | PROT_WRITE, MAP_PRIVATE, fd_A, 0)) == NULL);
-#else
-    int ret;
 
-    fdata_A = (char *)malloc (file_size);
+    /* open the PM pool for file A*/
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_A");
+    size_t pool_size = 10 * finfo_A.st_size;
+    if (pool_size < PMEMOBJ_MIN_POOL) {
+      pool_size = PMEMOBJ_MIN_POOL;
+    }
+    pool_A = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_A", "spp_test_A",  pool_size, 0660);
+    assert(pool_A != NULL);
+    
+    /* read the file_A and place it in PM residing buffer*/
+    int ret_A;
+    set_pool(pool_A);
+    fdata_A = (char *)mem_malloc (finfo_A.st_size);
     CHECK_ERROR (fdata_A == NULL);
-
-    ret = read (fd_A, fdata_A, file_size);
-    CHECK_ERROR (ret != file_size);
-#endif
+    ret_A = read (fd_A, fdata_A, finfo_A.st_size);
+    CHECK_ERROR (ret_A != finfo_A.st_size);
 
     // Read in the file
     CHECK_ERROR((fd_B = open(fname_B,O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd_B, &finfo_B) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata_B= mmap(0, file_size + 1,
-        PROT_READ | PROT_WRITE, MAP_PRIVATE, fd_B, 0)) == NULL);
-#else
-    fdata_B = (char *)malloc (file_size);
-    CHECK_ERROR (fdata_B == NULL);
 
-    ret = read (fd_B, fdata_B, file_size);
-    CHECK_ERROR (ret != file_size);
-#endif
+    /* open the PM pool for file B*/
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_B");
+    pool_size = 10 * finfo_B.st_size;
+    if (pool_size < PMEMOBJ_MIN_POOL) {
+      pool_size = PMEMOBJ_MIN_POOL;
+    }
+    pool_B = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_B", "spp_test_B",  pool_size, 0660);
+    assert(pool_B != NULL);
+
+    /* read the file_B and place it in PM residing buffer*/
+    int ret_B;
+    set_pool(pool_B);
+    fdata_B = (char *)mem_malloc (finfo_B.st_size);
+    CHECK_ERROR (fdata_B == NULL);
+    ret_B = read (fd_B, fdata_B, finfo_B.st_size);
+    CHECK_ERROR (ret_B != finfo_B.st_size);
+
+    /* open the generic PM pool for allocations*/
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    pool_size = 1024 * 1024 * 1024;
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
 
     // Setup splitter args
     mm_data_t mm_data;
@@ -309,7 +335,7 @@ int main(int argc, char *argv[]) {
     mm_data.matrix_B = NULL;
     mm_data.row_num = 0;
 
-    mm_data.output = (int*)malloc(matrix_len*matrix_len*sizeof(int));
+    mm_data.output = (int*)mem_malloc(matrix_len*matrix_len*sizeof(int));
     
     mm_data.matrix_A = matrix_A_ptr = ((int *)fdata_A);
     mm_data.matrix_B = matrix_B_ptr = ((int *)fdata_B);
@@ -370,21 +396,15 @@ int main(int argc, char *argv[]) {
 
     dprintf("MatrixMult: MapReduce Completed\n");
 
-    free(mm_vals.data);
-    free(mm_data.output);
+    mem_free(mm_vals.data);
+    mem_free(mm_data.output);
 
-#ifndef NO_MMAP
-    CHECK_ERROR(munmap(fdata_A, file_size + 1) < 0);
-#else
-    free (fdata_A);
-#endif
+    /* free the PM object for file A*/
+    mem_free (fdata_A); 
     CHECK_ERROR(close(fd_A) < 0);
 
-#ifndef NO_MMAP
-    CHECK_ERROR(munmap(fdata_B, file_size + 1) < 0);
-#else
-    free (fdata_B);
-#endif
+    /* free the PM object for file B*/
+    mem_free (fdata_B); 
     CHECK_ERROR(close(fd_B) < 0);
 
     get_time (&end);
@@ -392,6 +412,8 @@ int main(int argc, char *argv[]) {
 #ifdef TIMING
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
-
+    pmemobj_close(pool_A);
+    pmemobj_close(pool_B);
+    pmemobj_close(pool);
     return 0;
 }
