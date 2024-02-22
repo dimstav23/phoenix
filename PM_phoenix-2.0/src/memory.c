@@ -39,9 +39,23 @@
 
 #include "memory.h"
 
+PMEMobjpool* pop;
+
+void set_pool (PMEMobjpool* pool) {
+  pop = pool;
+}
+
 void *mem_malloc (size_t size)
 {
-    void *temp = malloc (size);
+    // check for 0 size passed
+    if (size == 0) {
+      return NULL;
+    }
+
+    PMEMoid tmp_oid;
+    pmemobj_alloc(pop, &tmp_oid, size, 0, NULL, NULL);
+    void *temp = pmemobj_direct(tmp_oid);
+    // void *temp = malloc (size);
     assert(temp);
 
     return temp;
@@ -49,39 +63,68 @@ void *mem_malloc (size_t size)
 
 void *mem_malloc_here (size_t size)
 {
-    void *temp = malloc (size);
+    // check for 0 size passed
+    if (size == 0) {
+      return NULL;
+    }
+
+    PMEMoid tmp_oid;
+    pmemobj_alloc(pop, &tmp_oid, size, 0, NULL, NULL);
+    void *temp = pmemobj_direct(tmp_oid);
+    // void *temp = malloc (size);
     assert(temp);
 
     return temp;
 }
 
 void *mem_calloc (size_t num, size_t size)
-{
-    void *temp = calloc (num, size);
+{   
+    // check for 0 size passed
+    if ((num * size) == 0) {
+      return NULL;
+    }
+
+    PMEMoid tmp_oid;
+    pmemobj_alloc(pop, &tmp_oid, num * size, 0, NULL, NULL);
+    void *temp = pmemobj_direct(tmp_oid);
+    pmemobj_memset_persist(pop, temp, 0, num * size);
+    // void *temp = calloc (num, size);
     assert(temp);
 
     return temp;
 }
 
 void *mem_realloc (void *ptr, size_t size)
-{
-    void *temp = realloc (ptr, size);
+{   
+    // check for 0 size passed
+    if (size == 0) {
+      return NULL;
+    }
+
+    PMEMoid tmp_oid = pmemobj_oid(ptr);
+    pmemobj_realloc(pop, &tmp_oid, size, 0);
+    void *temp = pmemobj_direct(tmp_oid);
+    // void *temp = realloc (ptr, size);
     assert(temp);
 
     return temp;
 }
 
 void *mem_memcpy (void *dest, const void *src, size_t size)
-{
-    return memcpy (dest, src, size);
+{   
+    return pmemobj_memcpy_persist(pop, dest, src, size);
+    // return memcpy (dest, src, size);
 }
 
 void *mem_memset (void *s, int c, size_t n)
 {
-    return memset (s, c, n);
+    return pmemobj_memset_persist(pop, s, c, n);
+    // return memset (s, c, n);
 }
 
 void mem_free (void *ptr)
-{
-    free (ptr);
+{   
+    PMEMoid tmp_oid = pmemobj_oid(ptr);
+    pmemobj_free(&tmp_oid);
+    // free (ptr);
 }

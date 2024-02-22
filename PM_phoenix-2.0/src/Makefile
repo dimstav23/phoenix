@@ -67,7 +67,7 @@ $(LIB_PHOENIX).so: $(OBJS)
 	$(CC) --shared -o $@ $(OBJS)
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
  
 clean:
 	rm -f $(HOME)/$(LIB_DIR)/$(TARGET) $(TARGET) $(OBJS)

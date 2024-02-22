@@ -28,7 +28,9 @@
 #define MEMORY_H_
 
 #include <sys/types.h>
+#include <libpmemobj.h>
 
+inline void set_pool (PMEMobjpool* pool);
 inline void *mem_malloc (size_t size);
 inline void *mem_malloc_here (size_t size);
 inline void *mem_calloc (size_t num, size_t size);
