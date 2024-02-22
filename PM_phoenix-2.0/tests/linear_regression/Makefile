@@ -46,16 +46,16 @@ default: all
 all: $(PROGS)
 
 linear_regression: $(L_REG_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(L_REG_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(L_REG_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 linear_regression-seq: $(L_REG_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(L_REG_SEQ_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(L_REG_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 linear_regression-pthread: $(L_REG_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(L_REG_PTHREAD_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(L_REG_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(L_REG_OBJS) $(L_REG_SEQ_OBJS) $(L_REG_PTHREAD_OBJS)

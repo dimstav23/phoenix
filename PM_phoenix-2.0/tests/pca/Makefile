@@ -46,16 +46,16 @@ default: all
 all: $(PROGS)
 
 pca: $(PCA_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(PCA_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(PCA_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 pca-seq: $(PCA_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(PCA_SEQ_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(PCA_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 pca-pthread: $(PCA_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(PCA_PTHREAD_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(PCA_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(PCA_OBJS) $(PCA_SEQ_OBJS) $(PCA_PTHREAD_OBJS)

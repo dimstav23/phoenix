@@ -46,16 +46,16 @@ default: all
 all: $(PROGS)
 
 word_count: $(WC_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(WC_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 word_count-pthread: $(WC_OBJS_PTHREAD)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_PTHREAD) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_PTHREAD) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 word_count-seq: $(WC_OBJS_SEQ)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_SEQ) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_SEQ) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(WC_OBJS) $(WC_OBJS_PTHREAD) $(WC_OBJS_SEQ)

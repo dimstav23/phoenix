@@ -46,16 +46,16 @@ default: all
 all: $(PROGS)
 
 matrix_multiply: $(MM_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(MM_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(MM_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 matrix_multiply-seq: $(MM_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(MM_SEQ_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(MM_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 matrix_multiply-pthread: $(MM_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(MM_PTHREAD_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(MM_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(MM_OBJS) $(MM_SEQ_OBJS) $(MM_PTHREAD_OBJS)

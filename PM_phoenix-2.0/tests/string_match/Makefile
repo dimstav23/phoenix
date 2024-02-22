@@ -46,16 +46,16 @@ default: all
 all: $(PROGS)
 
 string_match: $(STR_MATCH_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 string_match-seq: $(STR_MATCH_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_SEQ_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 string_match-pthread: $(STR_MATCH_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_PTHREAD_OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(STR_MATCH_OBJS) $(STR_MATCH_SEQ_OBJS) $(STR_MATCH_PTHREAD_OBJS)

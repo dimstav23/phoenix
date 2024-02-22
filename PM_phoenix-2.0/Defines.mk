@@ -38,7 +38,7 @@ ifeq ($(OSTYPE),Linux)
 OS = -D_LINUX_
 CC = gcc
 #DEBUG = -g
-CFLAGS = -Wall $(OS) $(DEBUG) -O3
+CFLAGS = -Wall $(OS) $(DEBUG) -O3 -g -ggdb
 LIBS = -pthread
 endif
 
@@ -50,6 +50,8 @@ CC = gcc
 CFLAGS = -Wall $(OS) $(DEBUG) -O3 -D_FILE_OFFSET_BITS=64
 LIBS = -lm -lrt -lthread -lmtmalloc -llgrp
 endif
+
+LIBS += -lpmem -lpmemobj
 
 ifeq ($(OSTYPE),Darwin)
 OS = -D_DARWIN_
@@ -92,3 +94,5 @@ SRC_DIR = src
 LIB_DIR = lib
 INC_DIR = include
 TESTS_DIR = tests
+
+PMDKSRC = $(HOME)/../../../pmdk/src
