@@ -42,6 +42,12 @@
 #include "stddefines.h"
 #include "sort.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+PMEMobjpool* pool_file;
+PMEMobjpool* pool;
+
 #define DEFAULT_DISP_NUM 10
 
 typedef struct {
@@ -83,14 +89,14 @@ int mykeyvalcmp(const void *v1, const void *v2)
     if (i1 < i2) return 1;
     else if (i1 > i2) return -1;
     else {
-    /*** don't just return 0 immediately coz the mapreduce scheduler provides 
-    1 key with multiple values to the reduce task. since the different words that 
-    we require are each part of a different keyval pair, returning 0 makes
-    the mapreduce scheduler think that it can just keep one key and disregard
-    the rest. That's not desirable in this case. Returning 0 when the values are
-    equal produces results where the same word is repeated for all the instances
-    which share the same frequency. Instead, we check the word as well, and only 
-    return 0 if both the value and the word match ****/
+        /*** don't just return 0 immediately coz the mapreduce scheduler provides
+        1 key with multiple values to the reduce task. since the different words that
+        we require are each part of a different keyval pair, returning 0 makes
+        the mapreduce scheduler think that it can just keep one key and disregard
+        the rest. That's not desirable in this case. Returning 0 when the values are
+        equal produces results where the same word is repeated for all the instances
+        which share the same frequency. Instead, we check the word as well, and only
+        return 0 if both the value and the word match ****/
         return strcmp((char *)kv1->key, (char *)kv2->key);
         //return 0;
     }
@@ -259,19 +265,28 @@ int main(int argc, char *argv[])
     CHECK_ERROR((fd = open(fname, O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd, &finfo) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata = mmap(0, finfo.st_size + 1, 
-      PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0)) == NULL);
-#else
+
+    /* open the PM pool */
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_file");
+    size_t pool_size = 100 * finfo.st_size;
+    if (pool_size < PMEMOBJ_MIN_POOL) {
+      pool_size = PMEMOBJ_MIN_POOL;
+    }
+    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file",  pool_size, 0660);
+    assert(pool_file != NULL);
+    set_pool(pool_file);
+
+    /* read the file and place it in PM residing buffer*/
     int ret;
-
-    fdata = (char *)malloc (finfo.st_size);
+    fdata = (char *)mem_malloc (finfo.st_size);
     CHECK_ERROR (fdata == NULL);
-
     ret = read (fd, fdata, finfo.st_size);
     CHECK_ERROR (ret != finfo.st_size);
-#endif
+
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
 
     // Get the number of results to display
     CHECK_ERROR((disp_num = (disp_num_str == NULL) ? 
@@ -348,20 +363,19 @@ int main(int argc, char *argv[])
       dprintf("%15s - %" PRIdPTR "\n", (char *)curr->key, (intptr_t)curr->val);
     }
 
-    free(wc_vals.data);
+    mem_free(wc_vals.data);
 
-#ifndef NO_MMAP
-    CHECK_ERROR(munmap(fdata, finfo.st_size + 1) < 0);
-#else
-    free (fdata);
-#endif
-    CHECK_ERROR(close(fd) < 0);
+    /* free the PM object */
+    set_pool(pool_file);
+    mem_free (fdata);
+    CHECK_ERROR (close (fd) < 0);
 
     get_time (&end);
 
 #ifdef TIMING
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
-
+    pmemobj_close(pool_file);
+    pmemobj_close(pool);
     return 0;
 }

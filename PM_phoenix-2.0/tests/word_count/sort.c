@@ -35,9 +35,12 @@
 #include "map_reduce.h"
 #include "stddefines.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
 static inline void * MR_MALLOC(size_t size)
 {
-    void * temp = malloc(size);
+    void * temp = mem_malloc(size);
     assert(temp);
     return temp;
 }
@@ -139,19 +142,19 @@ void mapreduce_sort(void *base, size_t num_elems, size_t width,
 #endif
 
     get_time (&begin);
-    
-    char * tmp = (char *)MR_MALLOC(width * num_elems); 
+
+    char * tmp = (char *)mem_malloc(width * num_elems);
     int i;
     
     // Need to copy to temp array first since
     // we could be sorting array of pointers
     for(i = 0; i < sort_vals.length; i++)
     {
-        memcpy(tmp + (i*width), sort_vals.data[i].key, width);
+        mem_memcpy(tmp + (i*width), sort_vals.data[i].key, width);
     }
     
-    memcpy(base, tmp, width * num_elems);
+    mem_memcpy(base, tmp, width * num_elems);
     
-    free(tmp);
-    free(sort_vals.data);
+    mem_free(tmp);
+    mem_free(sort_vals.data);
 }
