@@ -43,6 +43,14 @@
 #include "map_reduce.h"
 #include "stddefines.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+POBJ_LAYOUT_BEGIN(spp_test);
+POBJ_LAYOUT_END(spp_test);
+
+PMEMobjpool* pool;
+
 #define DEFAULT_UNIT_SIZE 5
 #define SALT_SIZE 2
 #define MAX_REC_LEN 1024
@@ -125,7 +133,7 @@ int string_match_splitter(void *data_in, int req_units, map_args_t *out)
 {
     /* Make a copy of the mm_data structure */
     str_data_t * data = (str_data_t *)data_in; 
-    str_map_data_t *map_data = (str_map_data_t *)malloc(sizeof(str_map_data_t));
+    str_map_data_t *map_data = (str_map_data_t *)mem_malloc(sizeof(str_map_data_t));
 
     map_data->encrypt_file = data->encrypt_file;
     map_data->keys_file = data->keys_file + data->bytes_comp;
@@ -192,8 +200,8 @@ void string_match_map(map_args_t *args)
 
     int key_len, total_len = 0;
     char * key_file = data_in->keys_file;
-    char * cur_word = malloc(MAX_REC_LEN);
-    char * cur_word_final = malloc(MAX_REC_LEN);
+    char * cur_word = mem_malloc(MAX_REC_LEN);
+    char * cur_word_final = mem_malloc(MAX_REC_LEN);
     bzero(cur_word, MAX_REC_LEN);
     bzero(cur_word_final, MAX_REC_LEN);
 
@@ -218,11 +226,12 @@ void string_match_map(map_args_t *args)
         bzero(cur_word_final, MAX_REC_LEN);
         total_len+=key_len;
     }
-    free(cur_word);
-    free(args->data);
+    mem_free(cur_word);
+    mem_free(args->data);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     final_data_t str_vals;
     int fd_keys;
     char *fdata_keys;
@@ -249,19 +258,23 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR((fd_keys = open(fname_keys,O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd_keys, &finfo_keys) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata_keys= mmap(0, finfo_keys.st_size + 1,
-        PROT_READ | PROT_WRITE, MAP_PRIVATE, fd_keys, 0)) == NULL);
-#else
+
+    /* open the PM pool */
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    size_t pool_size = 10 * finfo_keys.st_size;
+    if (pool_size < PMEMOBJ_MIN_POOL) {
+      pool_size = PMEMOBJ_MIN_POOL;
+    }
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
+
+    /* read the file and place it in PM residing buffer*/
     int ret;
-
-    fdata_keys = (char *)malloc (finfo_keys.st_size);
+    fdata_keys = (char *)mem_malloc (finfo_keys.st_size);
     CHECK_ERROR (fdata_keys == NULL);
-
     ret = read (fd_keys, fdata_keys, finfo_keys.st_size);
     CHECK_ERROR (ret != finfo_keys.st_size);
-#endif
 
     // Setup splitter args
 
@@ -299,15 +312,15 @@ int main(int argc, char *argv[]) {
 
     printf("String Match: Calling String Match\n");
 
-	key1_final = malloc(strlen(key1));
-	key2_final = malloc(strlen(key2));
-	key3_final = malloc(strlen(key3));
-	key4_final = malloc(strlen(key4));
+    key1_final = mem_malloc(strlen(key1));
+    key2_final = mem_malloc(strlen(key2));
+    key3_final = mem_malloc(strlen(key3));
+    key4_final = mem_malloc(strlen(key4));
 
-	compute_hashes(key1, key1_final);
-	compute_hashes(key2, key2_final);
-	compute_hashes(key3, key3_final);
-	compute_hashes(key4, key4_final);
+    compute_hashes(key1, key1_final);
+    compute_hashes(key2, key2_final);
+    compute_hashes(key3, key3_final);
+    compute_hashes(key4, key4_final);
 
     gettimeofday(&starttime,0);
 
@@ -331,19 +344,16 @@ int main(int argc, char *argv[]) {
 
     gettimeofday(&endtime,0);
 
-    free(key1_final);
-    free(key2_final);
-    free(key3_final);
-    free(key4_final);
+    mem_free(key1_final);
+    mem_free(key2_final);
+    mem_free(key3_final);
+    mem_free(key4_final);
 
     printf("String Match: Completed %ld\n",(endtime.tv_sec - starttime.tv_sec));
 
-#ifndef NO_MMAP
-    CHECK_ERROR(munmap(fdata_keys, finfo_keys.st_size + 1) < 0);
-#else
-    free (fdata_keys);
-#endif
-    CHECK_ERROR(close(fd_keys) < 0);
+    /* free the PM object */
+    mem_free (fdata_keys); 
+    CHECK_ERROR (close (fd_keys) < 0);
 
     get_time (&end);
 
@@ -351,5 +361,6 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool);
     return 0;
 }
