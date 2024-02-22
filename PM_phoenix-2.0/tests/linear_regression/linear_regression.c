@@ -41,6 +41,13 @@
 #include "map_reduce.h"
 #include "stddefines.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+POBJ_LAYOUT_BEGIN(spp_test);
+POBJ_LAYOUT_END(spp_test);
+
+PMEMobjpool* pool;
 
 typedef struct {
     char x;
@@ -80,11 +87,11 @@ static void linear_regression_map(map_args_t *args)
 
     assert(data);
 
-    long long * SX  = CALLOC(sizeof(long long), 1);
-    long long * SXX = CALLOC(sizeof(long long), 1);
-    long long * SY  = CALLOC(sizeof(long long), 1);
-    long long * SYY = CALLOC(sizeof(long long), 1);
-    long long * SXY = CALLOC(sizeof(long long), 1);
+    long long * SX  = mem_calloc(sizeof(long long), 1);
+    long long * SXX = mem_calloc(sizeof(long long), 1);
+    long long * SY  = mem_calloc(sizeof(long long), 1);
+    long long * SYY = mem_calloc(sizeof(long long), 1);
+    long long * SXY = mem_calloc(sizeof(long long), 1);
 
     register long long x, y;
     register long long sx = 0, sxx = 0, sy = 0, syy = 0, sxy = 0;
@@ -125,7 +132,7 @@ static int linear_regression_partition(int reduce_tasks, void* key, int key_size
  */
 static void linear_regression_reduce(void *key_in, iterator_t *itr)
 {
-    long long *sumptr = CALLOC(sizeof(long long), 1);
+    long long *sumptr = mem_calloc(sizeof(long long), 1);
     register long long sum = 0;
     long long *val;
 
@@ -134,7 +141,7 @@ static void linear_regression_reduce(void *key_in, iterator_t *itr)
     while (iter_next (itr, (void **)&val))
     {
         sum += *val;
-        free (val);
+        mem_free (val);
     }
 
     *sumptr = sum;
@@ -143,7 +150,7 @@ static void linear_regression_reduce(void *key_in, iterator_t *itr)
 
 static void *linear_regression_combiner (iterator_t *itr)
 {
-    long long *sumptr = CALLOC(sizeof(long long), 1);
+    long long *sumptr = mem_calloc(sizeof(long long), 1);
     register long long sum = 0;
     long long *val;
 
@@ -152,7 +159,7 @@ static void *linear_regression_combiner (iterator_t *itr)
     while (iter_next (itr, (void **)&val))
     {
         sum += *val;
-        free (val);
+        mem_free (val);
     }
 
     *sumptr = sum;
@@ -188,19 +195,23 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR((fd = open(fname, O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd, &finfo) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata = mmap(0, finfo.st_size + 1, 
-        PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0)) == NULL);
-#else
-    uint64_t ret;
 
-    fdata = (char *)malloc (finfo.st_size);
+    /* open the PM pool */
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    size_t pool_size = 10 * finfo.st_size;
+    if (pool_size < PMEMOBJ_MIN_POOL) {
+      pool_size = PMEMOBJ_MIN_POOL;
+    }
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
+
+    /* read the file and place it in PM residing buffer*/
+    int ret;
+    fdata = (char *)mem_malloc (finfo.st_size);
     CHECK_ERROR (fdata == NULL);
-
     ret = read (fd, fdata, finfo.st_size);
     CHECK_ERROR (ret != finfo.st_size);
-#endif
 
     CHECK_ERROR (map_reduce_init ());
 
@@ -274,7 +285,7 @@ int main(int argc, char *argv[]) {
              // INVALID KEY
              CHECK_ERROR(1);
         }
-        free(curr->val);
+        mem_free(curr->val);
     }
 
     double SX = (double)SX_ll;
@@ -306,14 +317,11 @@ int main(int argc, char *argv[]) {
     printf("\tSYY  = %lld\n", SYY_ll);
     printf("\tSXY  = %lld\n", SXY_ll);
 
-    free(final_vals.data);
+    mem_free(final_vals.data);
 
-#ifndef NO_MMAP
-    CHECK_ERROR(munmap(fdata, finfo.st_size + 1) < 0);
-#else
-    free (fdata);
-#endif
-    CHECK_ERROR(close(fd) < 0);
+    /* free the PM object */
+    mem_free (fdata);
+    CHECK_ERROR (close (fd) < 0);
 
     get_time (&end);
 
@@ -321,5 +329,6 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool);
     return 0;
 }
