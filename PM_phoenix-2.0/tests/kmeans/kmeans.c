@@ -36,6 +36,14 @@
 #include "stddefines.h"
 #include "map_reduce.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+POBJ_LAYOUT_BEGIN(spp_test);
+POBJ_LAYOUT_END(spp_test);
+
+PMEMobjpool* pool;
+
 #define DEF_NUM_POINTS 100000
 #define DEF_NUM_MEANS 100
 #define DEF_DIM 3
@@ -273,7 +281,7 @@ int kmeans_splitter(void *data_in, int req_units, map_args_t *out)
     
     if (kmeans_data->next_point >= num_points) return 0;
     
-    out_data = (kmeans_map_data_t *)malloc(sizeof(kmeans_map_data_t));
+    out_data = (kmeans_map_data_t *)mem_malloc(sizeof(kmeans_map_data_t));
     out->length = 1;
     out->data = (void *)out_data;
     
@@ -316,7 +324,7 @@ void kmeans_map(map_args_t *args)
     
     kmeans_map_data_t *map_data = args->data;
     find_clusters(map_data->points, map_data->means, map_data->clusters, map_data->length);  
-    free(args->data);
+    mem_free(args->data);
 }
 
 /** kmeans_reduce()
@@ -333,8 +341,8 @@ void kmeans_reduce(void *key_in, iterator_t *itr)
     void *val;
     int vals_len = iter_size (itr);
     
-    sum = (int *)calloc(dim, sizeof(int));
-    mean = (int *)malloc(dim * sizeof(int));
+    sum = (int *)mem_calloc(dim, sizeof(int));
+    mean = (int *)mem_malloc(dim * sizeof(int));
     
     i = 0;
     while (iter_next (itr, &val))
@@ -349,12 +357,18 @@ void kmeans_reduce(void *key_in, iterator_t *itr)
         mean[i] = sum[i] / vals_len;
     }
     
-    free(sum);
+    mem_free(sum);
     emit(key_in, (void *)mean);
 }
 
 int main(int argc, char **argv)
 {
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    size_t pool_size = 1024*1024*1024;
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
+
     final_data_t kmeans_vals;
     map_reduce_args_t map_reduce_args;
     int i;
@@ -372,23 +386,22 @@ int main(int argc, char **argv)
     parse_args(argc, argv);    
     
     // get points
-    kmeans_data.points = (int *)malloc(sizeof(int) * num_points * dim);
+    kmeans_data.points = (int *)mem_malloc(sizeof(int) * num_points * dim);
     generate_points(kmeans_data.points, num_points);
     
     // get means
-    kmeans_data.means = (keyval_t *)malloc(sizeof(keyval_t) * num_means);
-    means = malloc(sizeof(int) * dim * num_means);
+    kmeans_data.means = (keyval_t *)mem_malloc(sizeof(keyval_t) * num_means);
+    means = mem_malloc(sizeof(int) * dim * num_means);
     for (i=0; i<num_means; i++) {
         kmeans_data.means[i].val = &means[i * dim];
-        kmeans_data.means[i].key = malloc(sizeof(void *));
+        kmeans_data.means[i].key = mem_malloc(sizeof(void *));
     } 
     generate_means(kmeans_data.means, num_means);
     
     kmeans_data.next_point = 0;
     kmeans_data.unit_size = sizeof(int) * dim;
- 
-    kmeans_data.clusters = (int *)malloc(sizeof(int) * num_points);
-    memset(kmeans_data.clusters, -1, sizeof(int) * num_points);
+    kmeans_data.clusters = (int *)mem_malloc(sizeof(int) * num_points);
+    mem_memset(kmeans_data.clusters, -1, sizeof(int) * num_points);
     
     modified = true;
 
@@ -441,11 +454,14 @@ int main(int argc, char **argv)
         for (i = 0; i < kmeans_vals.length; i++)
         {
             int mean_idx = *((int *)(kmeans_vals.data[i].key));
-            if (first_run == false)
-                free(kmeans_data.means[mean_idx].val);
+            if (first_run == false) {
+                mem_free(kmeans_data.means[mean_idx].val);
+            }
             kmeans_data.means[mean_idx] = kmeans_vals.data[i];
         }
-        if (kmeans_vals.length > 0) free(kmeans_vals.data);
+        if (kmeans_vals.length > 0) {
+          mem_free(kmeans_vals.data);
+        }
         get_time (&end);
 
 #ifdef TIMING
@@ -469,17 +485,17 @@ int main(int argc, char **argv)
     dprintf("\n\nFinal means:\n");
     dump_means(kmeans_data.means, num_means);
 
-    free(kmeans_data.points);
+    mem_free(kmeans_data.points);
     
     for (i = 0; i < num_means; i++) 
     {
-        free(kmeans_data.means[i].key);
-        free(kmeans_data.means[i].val);
+        mem_free(kmeans_data.means[i].key);
+        mem_free(kmeans_data.means[i].val);
     }
-    free (kmeans_data.means);
-    free (means);
+    mem_free (kmeans_data.means);
+    mem_free (means);
     
-    free(kmeans_data.clusters);
+    mem_free(kmeans_data.clusters);
 
     get_time (&end);
 
@@ -487,5 +503,6 @@ int main(int argc, char **argv)
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool);
     return 0;
 }
