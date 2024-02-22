@@ -38,6 +38,14 @@
 #include "stddefines.h"
 #include "map_reduce.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+POBJ_LAYOUT_BEGIN(spp_test);
+POBJ_LAYOUT_END(spp_test);
+
+PMEMobjpool* pool;
+
 typedef struct {
     int *matrix;
     keyval_t *mean;
@@ -174,7 +182,7 @@ int pca_mean_splitter(void *data_in, int req_units, map_args_t *out)
     /* Assign a fixed number of rows to each map task */
     if (pca_data->next_start_row >= num_rows) return 0;
     
-    pca_map_data_t *map_data = (pca_map_data_t *)malloc(sizeof(pca_map_data_t));
+    pca_map_data_t *map_data = (pca_map_data_t *)mem_malloc(sizeof(pca_map_data_t));
     
     /* Allocate last few rows if less than required number of rows */
     if ( (pca_data->next_start_row + req_units) <= num_rows)
@@ -226,7 +234,7 @@ void pca_mean_map(map_args_t *args)
         emit_intermediate((void *)&matrix[i * num_cols], (void *)mean, sizeof(int *));
     }
     
-    free(data);
+    mem_free(data);
 }
 
 /** mycovcmp()
@@ -268,9 +276,9 @@ int pca_cov_splitter(void *data_in, int req_units, map_args_t *out)
     
     /* Allocate memory for the structures */
     CHECK_ERROR((cov_locs = (pca_cov_loc_t *)
-                                  malloc(sizeof(pca_cov_loc_t) * req_units)) == NULL);
+                                  mem_malloc(sizeof(pca_cov_loc_t) * req_units)) == NULL);
     CHECK_ERROR((cov_data = (pca_cov_data_t *)
-                                  malloc(sizeof(pca_cov_data_t))) == NULL);    
+                                  mem_malloc(sizeof(pca_cov_data_t))) == NULL);    
                                                                  
     out->length = 1;
     out->data = (void *)cov_data;
@@ -363,19 +371,25 @@ void pca_cov_map(map_args_t *args)
         
         //dprintf("Covariance for <%d, %d> is %d\n", start_idx, cov_idx, *covariance);
         
-        CHECK_ERROR((cov_loc = (pca_cov_loc_t *)malloc(sizeof(pca_cov_loc_t))) == NULL);
+        CHECK_ERROR((cov_loc = (pca_cov_loc_t *)mem_malloc(sizeof(pca_cov_loc_t))) == NULL);
         cov_loc->start_row = cov_data->cov_locs[i].start_row;
         cov_loc->cov_row = cov_data->cov_locs[i].cov_row;
         emit_intermediate((void *)cov_loc, (void *)covariance, sizeof(pca_cov_loc_t));
     }
     
-    free(cov_data->cov_locs);
-    free(cov_data);
+    mem_free(cov_data->cov_locs);
+    mem_free(cov_data);
 }
 
 
 int main(int argc, char **argv)
 {
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    size_t pool_size = 1024*1024*1024;
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
+
     final_data_t pca_mean_vals;
     final_data_t pca_cov_vals;
     map_reduce_args_t map_reduce_args;
@@ -390,7 +404,7 @@ int main(int argc, char **argv)
     parse_args(argc, argv);    
     
     // Allocate space for the matrix
-    pca_data.matrix = (int *)malloc(sizeof(int) * num_rows * num_cols);
+    pca_data.matrix = (int *)mem_malloc(sizeof(int) * num_rows * num_cols);
     
     //Generate random values for all the points in the matrix 
     generate_points(pca_data.matrix, num_rows, num_cols);
@@ -513,13 +527,13 @@ int main(int argc, char **argv)
             num_rows--;
             cnt = 0;
         }
-        free(pca_cov_vals.data[i].key);
+        mem_free(pca_cov_vals.data[i].key);
     }
     dprintf ("%" PRIdPTR "\n", sum);
     
-    free (pca_cov_vals.data);
-    free (pca_mean_vals.data);
-    free (pca_data.matrix);
+    mem_free (pca_cov_vals.data);
+    mem_free (pca_mean_vals.data);
+    mem_free (pca_data.matrix);
 
     get_time (&end);
 
@@ -527,5 +541,6 @@ int main(int argc, char **argv)
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool);
     return 0;
 }
