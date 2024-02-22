@@ -55,7 +55,7 @@ string_match-pthread: $(STR_MATCH_PTHREAD_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(STR_MATCH_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 	
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(STR_MATCH_OBJS) $(STR_MATCH_SEQ_OBJS) $(STR_MATCH_PTHREAD_OBJS)

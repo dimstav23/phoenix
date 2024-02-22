@@ -55,7 +55,7 @@ word_count-seq: $(WC_OBJS_SEQ)
 	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_SEQ) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(WC_OBJS) $(WC_OBJS_PTHREAD) $(WC_OBJS_SEQ)

@@ -55,7 +55,7 @@ histogram-pthread: $(HIST_PTHREAD_OBJS)
 	$(CC) $(CFLAGS) -o $@ $(HIST_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
 
 clean:
 	rm -f $(PROGS) $(HIST_OBJS) $(HIST_SEQ_OBJS) $(HIST_PTHREAD_OBJS)
