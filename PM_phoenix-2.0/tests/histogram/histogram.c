@@ -40,6 +40,14 @@
 #include "map_reduce.h"
 #include "stddefines.h"
 
+#include "memory.h"
+#include <libpmemobj.h>
+
+POBJ_LAYOUT_BEGIN(spp_test);
+POBJ_LAYOUT_END(spp_test);
+
+PMEMobjpool* pool;
+
 #define IMG_DATA_OFFSET_POS 10
 #define BITS_PER_PIXEL_POS 28
 
@@ -194,8 +202,8 @@ void *hist_combiner (iterator_t *itr)
     return (void *)sum;
 }
 
-int main(int argc, char *argv[]) {
-    
+int main(int argc, char *argv[]) 
+{
     final_data_t hist_vals;
     int i;
     int fd;
@@ -221,19 +229,23 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR((fd = open(fname, O_RDONLY)) < 0);
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd, &finfo) < 0);
-#ifndef NO_MMAP
-    // Memory map the file
-    CHECK_ERROR((fdata = mmap(0, finfo.st_size + 1, 
-        PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0)) == NULL);
-#else
+
+    /* open the PM pool */
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    size_t pool_size = 10 * finfo.st_size;
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
+
+    /* read the bitmap file and place it in PM residing buffer*/
     int ret;
         
-    fdata = (char *)malloc (finfo.st_size);
+    fdata = (char *)mem_malloc (finfo.st_size);
     CHECK_ERROR (fdata == NULL);
 
     ret = read (fd, fdata, finfo.st_size);
     CHECK_ERROR (ret != finfo.st_size);
-#endif
+
 
     if ((fdata[0] != 'B') || (fdata[1] != 'M')) {
         printf("File is not a valid bitmap file. Exiting\n");
@@ -342,13 +354,10 @@ int main(int argc, char *argv[]) {
         prev = pix_val;
     }
 
-    free(hist_vals.data);
+    mem_free(hist_vals.data);
 
-#ifndef NO_MMAP
-    CHECK_ERROR (munmap (fdata, finfo.st_size + 1) < 0);
-#else
-    free (fdata);
-#endif
+    /* free the PM object */
+    mem_free (fdata); 
     CHECK_ERROR (close (fd) < 0);
 
     get_time (&end);
@@ -357,5 +366,6 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool);
     return 0;
 }
