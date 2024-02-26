@@ -226,6 +226,7 @@ void string_match_map(map_args_t *args)
         bzero(cur_word_final, MAX_REC_LEN);
         total_len+=key_len;
     }
+    mem_free(cur_word_final);
     mem_free(cur_word);
     mem_free(args->data);
 }
@@ -261,17 +262,13 @@ int main(int argc, char *argv[])
 
     /* open the PM pool */
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    size_t pool_size = 10 * finfo_keys.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 
     /* read the file and place it in PM residing buffer*/
     int ret;
-    fdata_keys = (char *)mem_malloc (finfo_keys.st_size);
+    fdata_keys = (char *)mem_malloc (finfo_keys.st_size + 1);
     CHECK_ERROR (fdata_keys == NULL);
     ret = read (fd_keys, fdata_keys, finfo_keys.st_size);
     CHECK_ERROR (ret != finfo_keys.st_size);

@@ -364,8 +364,7 @@ void kmeans_reduce(void *key_in, iterator_t *itr)
 int main(int argc, char **argv)
 {
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    size_t pool_size = 1024*1024*1024;
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 

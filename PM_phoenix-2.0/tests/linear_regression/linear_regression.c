@@ -198,11 +198,7 @@ int main(int argc, char *argv[]) {
 
     /* open the PM pool */
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    size_t pool_size = 10 * finfo.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 

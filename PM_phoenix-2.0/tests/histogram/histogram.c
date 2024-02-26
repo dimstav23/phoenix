@@ -46,6 +46,7 @@
 POBJ_LAYOUT_BEGIN(spp_test);
 POBJ_LAYOUT_END(spp_test);
 
+PMEMobjpool* pool_file;
 PMEMobjpool* pool;
 
 #define IMG_DATA_OFFSET_POS 10
@@ -230,15 +231,11 @@ int main(int argc, char *argv[])
     // Get the file info (for file length)
     CHECK_ERROR(fstat(fd, &finfo) < 0);
 
-    /* open the PM pool */
-    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    size_t pool_size = 10 * finfo.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
-    assert(pool != NULL);
-    set_pool(pool);
+    /* open the PM pool to map the file */
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_file");
+    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file", POOL_SIZE, 0660);
+    assert(pool_file != NULL);
+    set_pool(pool_file);
 
     /* read the bitmap file and place it in PM residing buffer*/
     int ret;
@@ -249,6 +246,10 @@ int main(int argc, char *argv[])
     ret = read (fd, fdata, finfo.st_size);
     CHECK_ERROR (ret != finfo.st_size);
 
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool");
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
+    assert(pool != NULL);
+    set_pool(pool);
 
     if ((fdata[0] != 'B') || (fdata[1] != 'M')) {
         printf("File is not a valid bitmap file. Exiting\n");
@@ -359,7 +360,8 @@ int main(int argc, char *argv[])
 
     mem_free(hist_vals.data);
 
-    /* free the PM object */
+    /* free the PM object of the file */
+    set_pool(pool_file);
     mem_free (fdata); 
     CHECK_ERROR (close (fd) < 0);
 
@@ -369,6 +371,7 @@ int main(int argc, char *argv[])
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
 #endif
 
+    pmemobj_close(pool_file);
     pmemobj_close(pool);
     return 0;
 }

@@ -268,23 +268,19 @@ int main(int argc, char *argv[])
 
     /* open the PM pool */
     unlink("/mnt/pmem0/dimitrios/spp_test.pool_file");
-    size_t pool_size = 100 * finfo.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file",  pool_size, 0660);
+    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file", POOL_SIZE, 0660);
     assert(pool_file != NULL);
     set_pool(pool_file);
 
     /* read the file and place it in PM residing buffer*/
     int ret;
-    fdata = (char *)mem_malloc (finfo.st_size);
+    fdata = (char *)mem_malloc (finfo.st_size + 1);
     CHECK_ERROR (fdata == NULL);
     ret = read (fd, fdata, finfo.st_size);
     CHECK_ERROR (ret != finfo.st_size);
 
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 

@@ -281,12 +281,8 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR(fstat(fd_A, &finfo_A) < 0);
 
     /* open the PM pool for file A*/
-    unlink("/mnt/pmem0/dimitrios/spp_test.pool_A");
-    size_t pool_size = 10 * finfo_A.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool_A = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_A", "spp_test_A",  pool_size, 0660);
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_file_A");
+    pool_A = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file_A", "spp_test_A",  0.5 * POOL_SIZE, 0660);
     assert(pool_A != NULL);
     
     /* read the file_A and place it in PM residing buffer*/
@@ -303,12 +299,8 @@ int main(int argc, char *argv[]) {
     CHECK_ERROR(fstat(fd_B, &finfo_B) < 0);
 
     /* open the PM pool for file B*/
-    unlink("/mnt/pmem0/dimitrios/spp_test.pool_B");
-    pool_size = 10 * finfo_B.st_size;
-    if (pool_size < PMEMOBJ_MIN_POOL) {
-      pool_size = PMEMOBJ_MIN_POOL;
-    }
-    pool_B = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_B", "spp_test_B",  pool_size, 0660);
+    unlink("/mnt/pmem0/dimitrios/spp_test.pool_file_B");
+    pool_B = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file_B", "spp_test_B",  0.5 * POOL_SIZE, 0660);
     assert(pool_B != NULL);
 
     /* read the file_B and place it in PM residing buffer*/
@@ -321,8 +313,7 @@ int main(int argc, char *argv[]) {
 
     /* open the generic PM pool for allocations*/
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    pool_size = 1024 * 1024 * 1024;
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  pool_size, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test",  0.5 * POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 
