@@ -36,8 +36,8 @@ endif
 
 ifeq ($(OSTYPE),Linux)
 OS = -D_LINUX_
-CC = clang
-AR = llvm-ar
+CC = $(shell which clang)
+AR = $(shell which llvm-ar)
 #DEBUG = -g
 CFLAGS = -Wall $(OS) $(DEBUG) -O3
 LIBS = -pthread
@@ -73,8 +73,8 @@ CFLAGS += $(ARCH)
 # The $(OS) flag is included here to define the OS-specific constant so that
 # only the appropriate portions of the application get compiled. See the README
 # file for more information.
-AR = llvm-ar
-RANLIB = llvm-ranlib
+AR = $(shell which llvm-ar)
+RANLIB = $(shell which llvm-ranlib)
 LDFLAGS =
 
 PHOENIX = phoenix
