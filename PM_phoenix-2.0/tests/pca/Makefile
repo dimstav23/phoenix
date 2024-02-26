@@ -41,21 +41,25 @@ PROGS = pca pca-seq pca-pthread
 
 .PHONY: default all clean
 
+ifeq ($(SPP_OFF),1)
+SPP_FLAG=-DSPP_OFF
+endif
+
 default: all
 
 all: $(PROGS)
 
 pca: $(PCA_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(PCA_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(PCA_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 pca-seq: $(PCA_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(PCA_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(PCA_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 pca-pthread: $(PCA_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(PCA_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(PCA_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ ${SPP_FLAG}
 
 clean:
 	rm -f $(PROGS) $(PCA_OBJS) $(PCA_SEQ_OBJS) $(PCA_PTHREAD_OBJS)

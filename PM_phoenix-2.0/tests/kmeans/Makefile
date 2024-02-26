@@ -41,21 +41,25 @@ PROGS = kmeans kmeans-seq kmeans-pthread
 
 .PHONY: default all clean
 
+ifeq ($(SPP_OFF),1)
+SPP_FLAG=-DSPP_OFF
+endif
+
 default: all
 
 all: $(PROGS)
 
 kmeans: $(KMEANS_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(KMEANS_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(KMEANS_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 kmeans-seq: $(KMEANS_SEQ_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(KMEANS_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(KMEANS_SEQ_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 kmeans-pthread: $(KMEANS_PTHREAD_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(KMEANS_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(KMEANS_PTHREAD_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 	
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ ${SPP_FLAG}
 
 clean:
 	rm -f $(PROGS) $(KMEANS_OBJS) $(KMEANS_SEQ_OBJS) $(KMEANS_PTHREAD_OBJS)

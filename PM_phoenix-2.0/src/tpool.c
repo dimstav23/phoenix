@@ -64,22 +64,22 @@ tpool_t* tpool_create (int num_threads)
     tpool_t         *tpool;
     pthread_attr_t  attr;
 
-    tpool = mem_calloc (1, sizeof (tpool_t));
+    tpool = real_calloc (1, sizeof (tpool_t));
     if (tpool == NULL) 
         return NULL;
 
     tpool->num_threads = num_threads;
     tpool->num_workers = num_threads;
 
-    tpool->args = (void **)mem_malloc (sizeof (void *) * num_threads);
+    tpool->args = (void **)real_malloc (sizeof (void *) * num_threads);
     if (tpool->args == NULL) 
         goto fail_args;
 
-    tpool->threads = (pthread_t *)mem_malloc (sizeof (pthread_t) * num_threads);
+    tpool->threads = (pthread_t *)real_malloc (sizeof (pthread_t) * num_threads);
     if (tpool->threads == NULL) 
         goto fail_threads;
 
-    tpool->thread_args = (thread_arg_t *)mem_malloc (
+    tpool->thread_args = (thread_arg_t *)real_malloc (
         sizeof (thread_arg_t) * num_threads);
     if (tpool->thread_args == NULL) 
         goto fail_thread_args;
@@ -123,11 +123,11 @@ fail_thread_create:
         --i;
     }
 fail_all_workers_done:
-    mem_free (tpool->thread_args);
+    real_free (tpool->thread_args);
 fail_thread_args:
-    mem_free (tpool->threads);
+    real_free (tpool->threads);
 fail_threads:
-    mem_free (tpool->args);
+    real_free (tpool->args);
 fail_args:
 
     return NULL;
@@ -229,11 +229,11 @@ int tpool_destroy (tpool_t *tpool)
     sem_wait(&tpool->sem_all_workers_done);
 
     sem_destroy(&tpool->sem_all_workers_done);
-    mem_free (tpool->args);
-    mem_free (tpool->threads);
-    mem_free (tpool->thread_args);
+    real_free (tpool->args);
+    real_free (tpool->threads);
+    real_free (tpool->thread_args);
 
-    mem_free (tpool);
+    real_free (tpool);
 
     return result;
 }

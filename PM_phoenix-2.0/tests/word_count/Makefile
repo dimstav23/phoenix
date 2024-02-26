@@ -41,21 +41,25 @@ PROGS := word_count word_count-pthread word_count-seq
 
 .PHONY: default all clean
 
+ifeq ($(SPP_OFF),1)
+SPP_FLAG=-DSPP_OFF
+endif
+
 default: all
 
 all: $(PROGS)
 
 word_count: $(WC_OBJS) $(LIB_DEP)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(WC_OBJS) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 word_count-pthread: $(WC_OBJS_PTHREAD)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_PTHREAD) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(WC_OBJS_PTHREAD) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 	
 word_count-seq: $(WC_OBJS_SEQ)
-	$(CC) $(CFLAGS) -o $@ $(WC_OBJS_SEQ) -L${PMDKSRC}/nondebug/ $(LIBS) -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) $(SPP_LDFLAGS) -o $@ $(WC_OBJS_SEQ) -L${PMDKSRC}/nondebug/ $(LIBS) ${SPP_FLAG}
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ ${SPP_FLAG}
 
 clean:
 	rm -f $(PROGS) $(WC_OBJS) $(WC_OBJS_PTHREAD) $(WC_OBJS_SEQ)

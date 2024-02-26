@@ -30,6 +30,9 @@
 #include <sys/types.h>
 #include <libpmemobj.h>
 
+#define GIGABYTE (1024 * 1024 * 1024)
+#define POOL_SIZE (1 * GIGABYTE)
+
 inline void set_pool (PMEMobjpool* pool);
 inline void *mem_malloc (size_t size);
 inline void *mem_malloc_here (size_t size);
@@ -38,5 +41,10 @@ inline void *mem_realloc (void *ptr, size_t size);
 inline void *mem_memcpy (void *dest, const void *src, size_t size);
 inline void *mem_memset (void *s, int c, size_t n);
 inline void mem_free (void *ptr);
+
+inline void *real_malloc (size_t size);
+inline void *real_calloc (size_t num, size_t size);
+inline void *real_memset (void *s, int c, size_t n);
+inline void real_free (void *ptr);
 
 #endif // MEMORY_H_

@@ -52,6 +52,10 @@ SRCS := \
 #
 OBJS := ${SRCS:.c=.o}
 
+ifeq ($(SPP_OFF),1)
+SPP_FLAG=-DSPP_OFF
+endif
+
 default: all
 
 all: $(HOME)/$(LIB_DIR)/$(TARGET)
@@ -67,7 +71,7 @@ $(LIB_PHOENIX).so: $(OBJS)
 	$(CC) --shared -o $@ $(OBJS)
 
 %.o: %.c *.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ -DSPP_OFF
+	$(CC) $(CFLAGS) $(SPP_CFLAGS) -c $< -o $@ -I$(HOME)/$(INC_DIR) -I$(HOME)/$(SRC_DIR) -I${PMDKSRC}/include/ ${SPP_FLAG}
  
 clean:
 	rm -f $(HOME)/$(LIB_DIR)/$(TARGET) $(TARGET) $(OBJS)

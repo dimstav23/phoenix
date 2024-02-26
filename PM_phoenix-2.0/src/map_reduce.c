@@ -1809,7 +1809,7 @@ static void map (mr_env_t* env)
 
     //printf (OUT_PREFIX "num_map_tasks = %d\n", env->num_map_tasks);
 
-    mem_memset (&th_arg, 0, sizeof(thread_arg_t));
+    real_memset (&th_arg, 0, sizeof(thread_arg_t));
     th_arg.task_type = TASK_TYPE_MAP;
 
     start_workers (env, &th_arg);
@@ -1825,7 +1825,7 @@ static void reduce (mr_env_t* env)
 
     CHECK_ERROR (gen_reduce_tasks (env));
 
-    mem_memset (&th_arg, 0, sizeof(thread_arg_t));
+    real_memset (&th_arg, 0, sizeof(thread_arg_t));
     th_arg.task_type = TASK_TYPE_REDUCE;
 
     start_workers (env, &th_arg);
@@ -1845,7 +1845,7 @@ static void merge (mr_env_t* env)
 {
     thread_arg_t   th_arg;
 
-    mem_memset (&th_arg, 0, sizeof (thread_arg_t));
+    real_memset (&th_arg, 0, sizeof (thread_arg_t));
     th_arg.task_type = TASK_TYPE_MERGE;
 
     if (env->oneOutputQueuePerReduceTask) {

@@ -87,9 +87,10 @@ void *mem_calloc (size_t num, size_t size)
     PMEMoid tmp_oid;
     pmemobj_alloc(pop, &tmp_oid, num * size, 0, NULL, NULL);
     void *temp = pmemobj_direct(tmp_oid);
+    assert(temp);
+
     pmemobj_memset_persist(pop, temp, 0, num * size);
     // void *temp = calloc (num, size);
-    assert(temp);
 
     return temp;
 }
@@ -112,14 +113,14 @@ void *mem_realloc (void *ptr, size_t size)
 
 void *mem_memcpy (void *dest, const void *src, size_t size)
 {   
-    return pmemobj_memcpy_persist(pop, dest, src, size);
-    // return memcpy (dest, src, size);
+    // return pmemobj_memcpy_persist(pop, dest, src, size);
+    return memcpy (dest, src, size);
 }
 
 void *mem_memset (void *s, int c, size_t n)
 {
-    return pmemobj_memset_persist(pop, s, c, n);
-    // return memset (s, c, n);
+    // return pmemobj_memset_persist(pop, s, c, n);
+    return memset (s, c, n);
 }
 
 void mem_free (void *ptr)
@@ -127,4 +128,30 @@ void mem_free (void *ptr)
     PMEMoid tmp_oid = pmemobj_oid(ptr);
     pmemobj_free(&tmp_oid);
     // free (ptr);
+}
+
+void *real_malloc (size_t size)
+{
+    void *temp = malloc (size);
+    assert(temp);
+
+    return temp;
+}
+
+void *real_calloc (size_t num, size_t size)
+{   
+    void *temp = calloc (num, size);
+    assert(temp);
+
+    return temp;
+}
+
+void *real_memset (void *s, int c, size_t n)
+{
+    return memset (s, c, n);
+}
+
+void real_free (void *ptr)
+{   
+    free (ptr);
 }

@@ -33,13 +33,17 @@ include Defines.mk
 
 default: all
 
+ifneq ($(SPP_OFF),1)
+SPP_OFF=0
+endif
+
 all: $(TARGET) tests
 
 $(TARGET):
-	@$(MAKE) -C $(SRC_DIR) --no-print-directory
+	@$(MAKE) -C $(SRC_DIR) --no-print-directory SPP_OFF=$(SPP_OFF)
 
 tests:
-	@$(MAKE) -C $(TESTS_DIR) --no-print-directory
+	@$(MAKE) -C $(TESTS_DIR) --no-print-directory SPP_OFF=$(SPP_OFF)
  
 clean:
 	@$(MAKE) -C $(SRC_DIR) clean --no-print-directory

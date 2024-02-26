@@ -36,9 +36,10 @@ endif
 
 ifeq ($(OSTYPE),Linux)
 OS = -D_LINUX_
-CC = gcc
+CC = clang
+AR = llvm-ar
 #DEBUG = -g
-CFLAGS = -Wall $(OS) $(DEBUG) -O3 -g -ggdb
+CFLAGS = -Wall $(OS) $(DEBUG) -O3
 LIBS = -pthread
 endif
 
@@ -72,8 +73,8 @@ CFLAGS += $(ARCH)
 # The $(OS) flag is included here to define the OS-specific constant so that
 # only the appropriate portions of the application get compiled. See the README
 # file for more information.
-AR = ar
-RANLIB = ranlib
+AR = llvm-ar
+RANLIB = llvm-ranlib
 LDFLAGS =
 
 PHOENIX = phoenix
@@ -96,3 +97,39 @@ INC_DIR = include
 TESTS_DIR = tests
 
 PMDKSRC = $(HOME)/../../../pmdk/src
+
+ifneq ($(SPP_OFF),1)
+WRAP_LIST=-Wl,-wrap,free -Wl,-wrap,strcpy -Wl,-wrap,strcmp \
+          -Wl,-wrap,strncpy -Wl,-wrap,strncmp -Wl,-wrap,memcmp \
+          -Wl,-wrap,memchr -Wl,-wrap,strchr -Wl,-wrap,strncat \
+          -Wl,-wrap,strtol -Wl,-wrap,strlen -Wl,-wrap,strchrnul \
+          -Wl,-wrap,strcat -Wl,-wrap,snprintf \
+          -Wl,-wrap,memcpy -Wl,-wrap,memset -Wl,-wrap,memmove \
+          -Wl,-wrap,pmem_memmove_persist -Wl,-wrap,pmem_memcpy_persist \
+          -Wl,-wrap,pmem_memmove_nodrain -Wl,-wrap,pmem_memcpy_nodrain \
+          -Wl,-wrap,pmem_memmove -Wl,-wrap,pmem_memcpy \
+          -Wl,-wrap,pmem_memset_nodrain -Wl,-wrap,pmem_memset \
+          -Wl,-wrap,pmem_memset_persist -Wl,-wrap,pmemobj_memcpy \
+          -Wl,-wrap,pmemobj_memcpy_persist -Wl,-wrap,pmemobj_memmove \
+          -Wl,-wrap,pmemobj_memset -Wl,-wrap,pmemobj_memset_persist
+
+SPPLIB=$(HOME)/../../../runtime
+SPPLIBSRC=${SPPLIB}/src
+SPPLIBOBJ=${SPPLIB}/obj
+LLVMROOT=$(HOME)/../../../llvm-project
+
+SPP_CFLAGS=-U_FORTIFY_SOURCE \
+-D_FORTIFY_SOURCE=0 \
+-Wno-array-bounds \
+-flto \
+-Xclang -load -Xclang ${LLVMROOT}/build/lib/LLVMSPP.so \
+-DTAG_BITS=31 -fno-builtin
+
+SPP_LDFLAGS=-fuse-ld=gold \
+$(WRAP_LIST) \
+$(SPPLIBOBJ)/wrappers_spp.o \
+-Xlinker ${SPPLIBOBJ}/spp.o
+else
+SPP_CFLAGS=
+SPP_LDFLAGS=
+endif
