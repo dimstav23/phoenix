@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 
     /* open the PM pool to map the file */
     unlink("/mnt/pmem0/dimitrios/spp_test.pool_file");
-    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file", POOL_SIZE, 0660);
+    pool_file = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool_file", "spp_test_file", 1.5 * POOL_SIZE, 0660);
     assert(pool_file != NULL);
     set_pool(pool_file);
 
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     CHECK_ERROR (ret != finfo.st_size);
 
     unlink("/mnt/pmem0/dimitrios/spp_test.pool");
-    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", POOL_SIZE, 0660);
+    pool = pmemobj_create("/mnt/pmem0/dimitrios/spp_test.pool", "spp_test", 0.5 * POOL_SIZE, 0660);
     assert(pool != NULL);
     set_pool(pool);
 
