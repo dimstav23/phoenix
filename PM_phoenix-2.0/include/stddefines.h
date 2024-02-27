@@ -33,7 +33,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-//#define TIMING
+// #define TIMING
 
 /* Debug printf */
 #define dprintf(...) fprintf(stdout, __VA_ARGS__)
@@ -91,7 +91,6 @@ static inline char *GETENV(char *envstr)
 static inline unsigned int time_diff (
     struct timeval *end, struct timeval *begin)
 {
-#ifdef TIMING
     uint64_t result;
 
     result = end->tv_sec - begin->tv_sec;
@@ -99,16 +98,11 @@ static inline unsigned int time_diff (
     result += end->tv_usec - begin->tv_usec;
 
     return result;
-#else
-    return 0;
-#endif
 }
 
 static inline void get_time (struct timeval *t)
 {
-#ifdef TIMING
     gettimeofday (t, NULL);
-#endif
 }
 
 #endif // STDDEFINES_H_

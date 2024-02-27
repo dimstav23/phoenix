@@ -45,6 +45,10 @@
 #include "memory.h"
 #include <libpmemobj.h>
 
+#ifndef TIMING
+#define TIMING
+#endif
+
 PMEMobjpool* pool_file;
 PMEMobjpool* pool;
 
@@ -62,7 +66,7 @@ enum {
     NOT_IN_WORD
 };
 
-    struct timeval begin, end;
+    struct timeval init_begin, begin, end;
 #ifdef TIMING
     unsigned int library_time = 0;
 #endif
@@ -247,7 +251,8 @@ int main(int argc, char *argv[])
 
     struct timeval starttime,endtime;
 
-    get_time (&begin);
+    get_time (&init_begin);
+    begin = init_begin;
 
     // Make sure a filename is specified
     if (argv[1] == NULL)
@@ -366,12 +371,15 @@ int main(int argc, char *argv[])
     mem_free (fdata);
     CHECK_ERROR (close (fd) < 0);
 
+    pmemobj_close(pool_file);
+    pmemobj_close(pool);
+
     get_time (&end);
 
 #ifdef TIMING
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
+    fprintf (stderr, "Total time: %u us\n", time_diff(&end, &init_begin));
 #endif
-    pmemobj_close(pool_file);
-    pmemobj_close(pool);
+
     return 0;
 }

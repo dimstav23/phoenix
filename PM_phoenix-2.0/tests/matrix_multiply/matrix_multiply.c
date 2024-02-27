@@ -45,6 +45,10 @@
 #include "memory.h"
 #include <libpmemobj.h>
 
+#ifndef TIMING
+#define TIMING
+#endif
+
 PMEMobjpool* pool;
 PMEMobjpool* pool_A;
 PMEMobjpool* pool_B;
@@ -203,9 +207,10 @@ int main(int argc, char *argv[]) {
     char * fname_A, *fname_B;
     int *matrix_A_ptr, *matrix_B_ptr;
 
-    struct timeval begin, end;
+    struct timeval init_begin, begin, end;
 
-    get_time (&begin);
+    get_time (&init_begin);
+    begin = init_begin;
     
     srand( (unsigned)time( NULL ) );
 
@@ -398,13 +403,16 @@ int main(int argc, char *argv[]) {
     mem_free (fdata_B); 
     CHECK_ERROR(close(fd_B) < 0);
 
+    pmemobj_close(pool_A);
+    pmemobj_close(pool_B);
+    pmemobj_close(pool);
+
     get_time (&end);
 
 #ifdef TIMING
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
+    fprintf (stderr, "Total time: %u us\n", time_diff(&end, &init_begin));
 #endif
-    pmemobj_close(pool_A);
-    pmemobj_close(pool_B);
-    pmemobj_close(pool);
+
     return 0;
 }

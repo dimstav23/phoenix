@@ -41,6 +41,10 @@
 #include "memory.h"
 #include <libpmemobj.h>
 
+#ifndef TIMING
+#define TIMING
+#endif
+
 POBJ_LAYOUT_BEGIN(spp_test);
 POBJ_LAYOUT_END(spp_test);
 
@@ -393,12 +397,13 @@ int main(int argc, char **argv)
     final_data_t pca_cov_vals;
     map_reduce_args_t map_reduce_args;
     int i;
-    struct timeval begin, end;
+    struct timeval init_begin, begin, end;
 #ifdef TIMING
     unsigned int library_time = 0;
 #endif
 
-    get_time (&begin);
+    get_time (&init_begin);
+    begin = init_begin;
     
     parse_args(argc, argv);    
     
@@ -534,12 +539,14 @@ int main(int argc, char **argv)
     mem_free (pca_mean_vals.data);
     mem_free (pca_data.matrix);
 
+    pmemobj_close(pool);
+
     get_time (&end);
 
 #ifdef TIMING
     fprintf (stderr, "finalize: %u\n", time_diff (&end, &begin));
+    fprintf (stderr, "Total time: %u us\n", time_diff(&end, &init_begin));
 #endif
 
-    pmemobj_close(pool);
     return 0;
 }
