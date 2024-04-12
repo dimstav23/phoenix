@@ -256,7 +256,7 @@ int main(int argc, char *argv[]) {
 #else
     int ret;
 
-    fdata_keys = (char *)malloc (finfo_keys.st_size);
+    fdata_keys = (char *)malloc (finfo_keys.st_size + 1);
     CHECK_ERROR (fdata_keys == NULL);
 
     ret = read (fd_keys, fdata_keys, finfo_keys.st_size);
